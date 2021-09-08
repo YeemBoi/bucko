@@ -1,4 +1,4 @@
-package main
+package bucko
 
 import (
 	"github.com/labstack/echo/v4"
