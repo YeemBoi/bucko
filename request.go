@@ -38,18 +38,18 @@ func NewCtx(c echo.Context, ctx context.Context) *ReqCtx {
 }
 
 func (rc *ReqCtx) SetUser() (err error) {
-	token, ok := rc.Context.Get("auth").(*jwt.Token)
-	if !ok {
+	token, ok := rc.Context.Get(jwtConfig.ContextKey).(*jwt.Token)
+	if !ok || !token.Valid {
 		return errors.New("could not get token")
 	}
-	if claims, ok := token.Claims.(*JwtCustomClaims); ok && token.Valid {
-		if err = rc.Query(&claims.User).SetId(); err != nil {
-			return err
-		}
-		rc.UserId = nulls.NewUInt32(uint32(claims.User.Id))
-	} else {
-		return errors.New("invalid token")
+	user, err := jwtConfig.userGetter(token.Claims)
+	if err != nil {
+		return err
 	}
+	if err = rc.Query(user).SetId(); err != nil {
+		return err
+	}
+	rc.UserId = nulls.NewUInt32(uint32(*user.GetId()))
 	return
 }
 
