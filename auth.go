@@ -12,15 +12,15 @@ import (
 
 type (
 
-	// defaultUser is the default user for parsing JWT.
-	defaultUser struct {
+	// DefaultUser is the Default user for parsing JWT.
+	DefaultUser struct {
 		bun.BaseModel `bun:"users,alias:user"`
 		Username      string `json:"username" bun:"username"`
 		Id            uint64 `json:"-" bun:"id,pk"`
 	}
 
-	defaultJwtClaims struct {
-		User *defaultUser `json:"user"`
+	DefaultJwtClaims struct {
+		User *DefaultUser `json:"user"`
 		jwt.StandardClaims
 	}
 
@@ -34,7 +34,7 @@ type (
 var jwtConfig = syncedJwtConfig{
 	JWTConfig: middleware.DefaultJWTConfig,
 	userGetter: func(claims jwt.Claims) (u BaseFieldModel, err error) {
-		customClaims, ok := claims.(defaultJwtClaims)
+		customClaims, ok := claims.(DefaultJwtClaims)
 		if !ok {
 			err = errors.New("could not parse user")
 			return
@@ -57,23 +57,23 @@ func SetUserGetter(userGetter func(claims jwt.Claims) (u BaseFieldModel, err err
 	jwtConfig.mu.Unlock()
 }
 
-// defaults ...
+// Defaults ...
 
-func (*defaultUser) GetParam() string {
+func (*DefaultUser) GetParam() string {
 	return "username"
 }
 
-func (*defaultUser) GetColumn() bun.Ident {
+func (*DefaultUser) GetColumn() bun.Ident {
 	return "username"
 }
-func (m *defaultUser) GetField() interface{} {
+func (m *DefaultUser) GetField() interface{} {
 	return m.Username
 }
 
-func (*defaultUser) GetSelectQuery(cq *CtxQuery) *bun.SelectQuery {
+func (*DefaultUser) GetSelectQuery(cq *CtxQuery) *bun.SelectQuery {
 	return cq.Q.Column("id", "username")
 }
 
-func (b *defaultUser) Insert(rc *ReqCtx) (m BaseFieldModel, err error) {
+func (b *DefaultUser) Insert(rc *ReqCtx) (m BaseFieldModel, err error) {
 	return nil, fmt.Errorf("cannot insert skeletal model %T", b)
 }
