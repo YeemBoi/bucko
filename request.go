@@ -70,15 +70,15 @@ func (rc *ReqCtx) AuthorInsert(q *bun.InsertQuery) *bun.InsertQuery {
 	return q.Value("user_id", "?", rc.UserId)
 }
 
-func (rc *ReqCtx) delete(m BaseFieldModel) (err error) {
-	_, err = DB.NewDelete().Model(m).WherePK().Exec(rc.Ctx)
-	return
-}
-
-func (rc *ReqCtx) search(q *bun.SelectQuery, searchCols bun.Safe) *bun.SelectQuery {
+func (rc *ReqCtx) Search(q *bun.SelectQuery, searchCols bun.Safe) *bun.SelectQuery {
 	searchString := rc.Context.QueryParam("search")
 	if len(searchString) > 2 {
 		return q.Where("MATCH(?) AGAINST (?)", searchCols, searchString)
 	}
 	return q
+}
+
+func (rc *ReqCtx) delete(m BaseFieldModel) (err error) {
+	_, err = DB.NewDelete().Model(m).WherePK().Exec(rc.Ctx)
+	return
 }
