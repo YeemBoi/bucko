@@ -49,7 +49,7 @@ func (rc *ReqCtx) SetUser() (err error) {
 	if err = rc.Query(user).SetId(); err != nil {
 		return err
 	}
-	rc.UserId = nulls.NewUInt32(uint32(*user.GetId()))
+	rc.UserId = nulls.NewUInt32(uint32(GetPK(user)))
 	return
 }
 
@@ -70,7 +70,7 @@ func (rc *ReqCtx) AuthorInsert(q *bun.InsertQuery) *bun.InsertQuery {
 	return q.Value("user_id", "?", rc.UserId)
 }
 
-func (rc *ReqCtx) delete(m BaseIdModel) (err error) {
+func (rc *ReqCtx) delete(m BaseFieldModel) (err error) {
 	_, err = DB.NewDelete().Model(m).WherePK().Exec(rc.Ctx)
 	return
 }

@@ -59,10 +59,6 @@ func SetUserGetter(userGetter func(claims jwt.Claims) (u BaseFieldModel, err err
 
 // defaults ...
 
-func (m *defaultUser) GetId() *uint64 {
-	return &m.Id
-}
-
 func (*defaultUser) GetParam() string {
 	return "username"
 }
@@ -76,10 +72,6 @@ func (m *defaultUser) GetField() interface{} {
 
 func (*defaultUser) GetSelectQuery(cq *CtxQuery) *bun.SelectQuery {
 	return cq.Q.Column("id", "username")
-}
-
-func (s *defaultUser) GetRelationQueries() []*RelationQuery {
-	return make([]*RelationQuery, 0)
 }
 
 func (b *defaultUser) Insert(rc *ReqCtx) (m BaseFieldModel, err error) {

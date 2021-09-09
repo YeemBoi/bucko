@@ -2,10 +2,12 @@ package bucko
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/schema"
 )
 
 type CtxQuery struct {
@@ -29,7 +31,7 @@ func (cq *CtxQuery) CheckFieldExists() (exists bool, err error) {
 }
 
 func (cq *CtxQuery) CheckIdExists() (exists bool, err error) {
-	return BaseCheckExists(cq.M, cq.R.Ctx, "id = ?", cq.M.GetId())
+	return BaseCheckPKExists(cq.M, cq.R.Ctx)
 }
 
 func (cq *CtxQuery) CheckExistsFromField(field interface{}) (exists bool, err error) {
@@ -37,7 +39,7 @@ func (cq *CtxQuery) CheckExistsFromField(field interface{}) (exists bool, err er
 }
 
 func (cq *CtxQuery) CheckExistsFromId(id uint64) (exists bool, err error) {
-	return BaseCheckExists(cq.M, cq.R.Ctx, "id = ?", id)
+	return BaseCheckExists(cq.M, cq.R.Ctx, "? = ?", cq.SafeCol(GetPKCol(cq.M)), id)
 }
 
 func (cq *CtxQuery) DeleteFromId() (err error) {
@@ -96,30 +98,40 @@ func (cq *CtxQuery) Insert() (err error) {
 }
 
 func (cq *CtxQuery) SetId() (err error) {
-	return DB.NewSelect().Column("id").Model(cq.M).
-		Where("? = ?", cq.SafeCol(cq.M.GetColumn()), cq.M.GetField()).Limit(1).Scan(cq.R.Ctx, cq.M.GetId())
+	return DB.NewSelect().Column(string(GetPKCol(cq.M))).Model(cq.M).
+		Where("? = ?", cq.SafeCol(cq.M.GetColumn()), cq.M.GetField()).Limit(1).Scan(cq.R.Ctx)
 }
 
 func (cq *CtxQuery) Select() {
 	cq.Q = cq.M.GetSelectQuery(cq)
-	for _, rel := range cq.M.GetRelationQueries() {
+	for _, rel := range DB.Table(reflect.TypeOf(cq.M)).Relations {
 		cq.selectRel(rel, make([]string, 0), make([]string, 0))
 	}
 }
 
-func (cq *CtxQuery) selectRel(rel *RelationQuery, oldNames []string, oldPrefixes []string) {
-	newNames := append(oldNames, rel.Name)
-	newPrefixes := append(oldPrefixes, rel.JoinPrefix)
+func (cq *CtxQuery) selectRel(rel *schema.Relation, oldNames []string, oldPrefixes []string) {
+	if rel.Type != schema.BelongsToRelation {
+		return
+	}
+
+	newNames := append(oldNames, rel.Field.GoName)
+	newPrefixes := append(oldPrefixes, rel.Field.Name)
+
+	var m, ok = rel.JoinTable.ZeroIface.(BaseFieldModel)
+	if !ok {
+		err := fmt.Errorf("joined table %v does not implement BaseFieldModel", rel.JoinTable.ModelName)
+		fmt.Println(err)
+	}
 	cq.Q = cq.Q.Relation(strings.Join(newNames, "."),
 		func(q *bun.SelectQuery) *bun.SelectQuery {
-			return rel.Model.GetSelectQuery(&CtxQuery{
+			return m.GetSelectQuery(&CtxQuery{
 				R:          cq.R,
 				Q:          q,
-				JoinPrefix: strings.Join(newPrefixes, "__") + "__",
-				TableAlias: bun.Safe(strings.Join(newPrefixes, "__")),
+				JoinPrefix: fmt.Sprintf("%s__", strings.Join(newPrefixes, "__")),
+				TableAlias: bun.Safe(fmt.Sprintf("`%s`", strings.Join(newPrefixes, "__"))),
 			})
 		})
-	for _, rel := range rel.Model.GetRelationQueries() {
+	for _, rel := range rel.JoinTable.Relations {
 		cq.selectRel(rel, newNames, newPrefixes)
 	}
 }
