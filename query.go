@@ -64,7 +64,7 @@ func (cq *CtxQuery) SetLimitOffset() {
 }
 
 func (cq *CtxQuery) ApplySearch(searchCols bun.Safe) {
-	cq.Q = cq.R.search(cq.Q, searchCols)
+	cq.Q = cq.R.Search(cq.Q, searchCols)
 }
 
 func (cq *CtxQuery) WhereParamToCol() {
