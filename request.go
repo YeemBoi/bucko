@@ -46,7 +46,7 @@ func (rc *ReqCtx) SetUser() (err error) {
 	if err != nil {
 		return err
 	}
-	if err = rc.Query(user).SetId(); err != nil {
+	if err = rc.Query(user).SetPK(); err != nil {
 		return err
 	}
 	rc.UserId = nulls.NewUInt32(uint32(GetPK(user)))

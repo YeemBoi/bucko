@@ -30,7 +30,7 @@ func (cq *CtxQuery) CheckFieldExists() (exists bool, err error) {
 	return BaseCheckExists(cq.M, cq.R.Ctx, "? = ?", cq.SafeCol(cq.M.GetColumn()), cq.M.GetField())
 }
 
-func (cq *CtxQuery) CheckIdExists() (exists bool, err error) {
+func (cq *CtxQuery) CheckPKExists() (exists bool, err error) {
 	return BaseCheckPKExists(cq.M, cq.R.Ctx)
 }
 
@@ -38,11 +38,11 @@ func (cq *CtxQuery) CheckExistsFromField(field interface{}) (exists bool, err er
 	return BaseCheckExists(cq.M, cq.R.Ctx, "? = ?", cq.SafeCol(cq.M.GetColumn()), field)
 }
 
-func (cq *CtxQuery) CheckExistsFromId(id uint64) (exists bool, err error) {
+func (cq *CtxQuery) CheckExistsFromPK(id uint64) (exists bool, err error) {
 	return BaseCheckExists(cq.M, cq.R.Ctx, "? = ?", cq.SafeCol(GetPKCol(cq.M)), id)
 }
 
-func (cq *CtxQuery) DeleteFromId() (err error) {
+func (cq *CtxQuery) DeleteFromPK() (err error) {
 	return cq.R.delete(cq.M)
 }
 
@@ -81,7 +81,7 @@ func (cq *CtxQuery) FromField() (err error) {
 	return cq.Q.Where("? = ?", cq.M.GetColumn(), cq.M.GetField()).Limit(1).Scan(cq.R.Ctx)
 }
 
-func (cq *CtxQuery) FromId() (err error) {
+func (cq *CtxQuery) FromPK() (err error) {
 	return cq.M.GetSelectQuery(cq).WherePK().Scan(cq.R.Ctx)
 }
 
@@ -89,7 +89,7 @@ func (cq *CtxQuery) GetFromField(field interface{}) (err error) {
 	return cq.M.GetSelectQuery(cq).Where("? = ?", cq.SafeCol(cq.M.GetColumn()), field).Limit(1).Scan(cq.R.Ctx)
 }
 
-func (cq *CtxQuery) GetFromId(id uint64) (err error) {
+func (cq *CtxQuery) GetFromPK(id uint64) (err error) {
 	return cq.M.GetSelectQuery(cq).WherePK().Scan(cq.R.Ctx)
 }
 func (cq *CtxQuery) Insert() (err error) {
@@ -97,7 +97,7 @@ func (cq *CtxQuery) Insert() (err error) {
 	return
 }
 
-func (cq *CtxQuery) SetId() (err error) {
+func (cq *CtxQuery) SetPK() (err error) {
 	return DB.NewSelect().Column(string(GetPKCol(cq.M))).Model(cq.M).
 		Where("? = ?", cq.SafeCol(cq.M.GetColumn()), cq.M.GetField()).Limit(1).Scan(cq.R.Ctx)
 }
