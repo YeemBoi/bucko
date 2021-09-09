@@ -11,7 +11,6 @@ import (
 )
 
 type (
-
 	// DefaultUser is the Default user for parsing JWT.
 	DefaultUser struct {
 		bun.BaseModel `bun:"users,alias:user"`
