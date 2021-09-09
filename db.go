@@ -3,14 +3,21 @@ package bucko
 import (
 	"context"
 	"database/sql"
+	"sync"
 
 	"github.com/uptrace/bun"
 )
 
-var DB *bun.DB
+type db struct {
+	*bun.DB
+	mu sync.Mutex
+}
+
+var DB db
 
 func UseDB(db *bun.DB) {
-	DB = db
+	DB.DB = db
+	DB.mu.Unlock()
 }
 
 func BaseCheckExists(model interface{}, ctx context.Context, query string, args ...interface{}) (exists bool, err error) {
