@@ -33,7 +33,7 @@ type (
 var jwtConfig = syncedJwtConfig{
 	JWTConfig: middleware.DefaultJWTConfig,
 	userGetter: func(claims jwt.Claims) (u BaseFieldModel, err error) {
-		customClaims, ok := claims.(DefaultJwtClaims)
+		customClaims, ok := claims.(*DefaultJwtClaims)
 		if !ok {
 			err = errors.New("could not parse user")
 			return
