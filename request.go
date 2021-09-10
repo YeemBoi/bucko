@@ -38,9 +38,12 @@ func NewCtx(c echo.Context, ctx context.Context) *ReqCtx {
 }
 
 func (rc *ReqCtx) SetUser() (err error) {
-	token, ok := rc.Context.Get(jwtConfig.ContextKey).(*jwt.Token)
-	if !ok || !token.Valid {
+	token, ok := rc.Get(jwtConfig.ContextKey).(*jwt.Token)
+	if !ok {
 		return errors.New("could not get token")
+	}
+	if !token.Valid {
+		return errors.New("invalid token")
 	}
 	user, err := jwtConfig.userGetter(token.Claims)
 	if err != nil {
