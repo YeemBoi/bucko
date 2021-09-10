@@ -128,9 +128,6 @@ func (cq *CtxQuery) selectRel(rel *schema.Relation, customs CustomRelI, oldNames
 
 	if customs != nil {
 		m = customs.GetCustomRel(cq.R, rel.Field.GoName)
-		if m == nil {
-			return
-		}
 	} else {
 		var ok bool
 		m, ok = rel.JoinTable.ZeroIface.(BaseFieldModel)
@@ -138,6 +135,9 @@ func (cq *CtxQuery) selectRel(rel *schema.Relation, customs CustomRelI, oldNames
 			err := fmt.Errorf("joined table %v does not implement BaseFieldModel", rel.JoinTable.ModelName)
 			fmt.Println(err)
 		}
+	}
+	if m == nil {
+		return
 	}
 
 	newCustoms, _ := rel.JoinTable.ZeroIface.(CustomRelI)
