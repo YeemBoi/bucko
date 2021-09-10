@@ -25,6 +25,13 @@ type (
 		// GetParam must return the URL param name of the main field used to retrieve the model (not PK).
 		GetParam() string
 	}
+
+	// CustomRelI provides functionality to customize relations to a BaseFieldModel.
+	// To disable a relation, return nil.
+	CustomRelI interface {
+		BaseFieldModel
+		GetCustomRel(rc *ReqCtx, name string) BaseFieldModel
+	}
 )
 
 func GetPK(m interface{}) uint64 {

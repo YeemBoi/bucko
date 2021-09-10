@@ -18,10 +18,12 @@ type CtxQuery struct {
 	TableAlias bun.Safe
 }
 
+// SafeCol returns a query's column, safe to use in joins.
 func (cq *CtxQuery) SafeCol(column bun.Ident) bun.Safe {
 	return bun.Safe(fmt.Sprintf("%s.`%s`", cq.TableAlias, column))
 }
 
+// ColAlias returns a query's column's alias for selection to bun, safe to use in joins.
 func (cq *CtxQuery) ColAlias(column bun.Ident) bun.Ident {
 	return bun.Ident(cq.JoinPrefix) + column
 }
@@ -46,6 +48,7 @@ func (cq *CtxQuery) DeleteFromPK() (err error) {
 	return cq.R.delete(cq.M)
 }
 
+// SetLimitOffset sets a queries limit & offset from given URL parameters.
 func (cq *CtxQuery) SetLimitOffset() {
 	var limit, offset uint64
 	limit, err := strconv.ParseUint(cq.R.Context.QueryParam("limit"), 10, 8)
@@ -92,6 +95,8 @@ func (cq *CtxQuery) GetFromField(field interface{}) (err error) {
 func (cq *CtxQuery) GetFromPK(id uint64) (err error) {
 	return cq.M.GetSelectQuery(cq).Where("? = ?", cq.SafeCol(GetPKCol(cq.M)), id).Limit(1).Scan(cq.R.Ctx)
 }
+
+// Insert inserts CtxQuery's model based on its Insert() method.
 func (cq *CtxQuery) Insert() (err error) {
 	cq.M, err = cq.M.Insert(cq.R)
 	return
@@ -102,26 +107,40 @@ func (cq *CtxQuery) SetPK() (err error) {
 		Where("? = ?", cq.SafeCol(cq.M.GetColumn()), cq.M.GetField()).Limit(1).Scan(cq.R.Ctx)
 }
 
+// Select applies its model's GetSelectQuery and relations to itself.
 func (cq *CtxQuery) Select() {
 	cq.Q = cq.M.GetSelectQuery(cq)
+	customs, _ := cq.M.(CustomRelI)
 	for _, rel := range DB.Table(reflect.TypeOf(cq.M)).Relations {
-		cq.selectRel(rel, make([]string, 0), make([]string, 0))
+		cq.selectRel(rel, customs, make([]string, 0), make([]string, 0))
 	}
 }
 
-func (cq *CtxQuery) selectRel(rel *schema.Relation, oldNames []string, oldPrefixes []string) {
-	if rel.Type != schema.BelongsToRelation {
+func (cq *CtxQuery) selectRel(rel *schema.Relation, customs CustomRelI, oldNames []string, oldPrefixes []string) {
+	if rel.Type != schema.HasOneRelation {
 		return
 	}
 
 	newNames := append(oldNames, rel.Field.GoName)
 	newPrefixes := append(oldPrefixes, rel.Field.Name)
 
-	var m, ok = rel.JoinTable.ZeroIface.(BaseFieldModel)
-	if !ok {
-		err := fmt.Errorf("joined table %v does not implement BaseFieldModel", rel.JoinTable.ModelName)
-		fmt.Println(err)
+	var m BaseFieldModel
+
+	if customs != nil {
+		m = customs.GetCustomRel(cq.R, rel.Field.GoName)
+		if m == nil {
+			return
+		}
+	} else {
+		var ok bool
+		m, ok = rel.JoinTable.ZeroIface.(BaseFieldModel)
+		if !ok {
+			err := fmt.Errorf("joined table %v does not implement BaseFieldModel", rel.JoinTable.ModelName)
+			fmt.Println(err)
+		}
 	}
+
+	newCustoms, _ := rel.JoinTable.ZeroIface.(CustomRelI)
 	cq.Q = cq.Q.Relation(strings.Join(newNames, "."),
 		func(q *bun.SelectQuery) *bun.SelectQuery {
 			return m.GetSelectQuery(&CtxQuery{
@@ -132,6 +151,6 @@ func (cq *CtxQuery) selectRel(rel *schema.Relation, oldNames []string, oldPrefix
 			})
 		})
 	for _, rel := range rel.JoinTable.Relations {
-		cq.selectRel(rel, newNames, newPrefixes)
+		cq.selectRel(rel, newCustoms, newNames, newPrefixes)
 	}
 }
