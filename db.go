@@ -16,6 +16,7 @@ type db struct {
 var DB db
 
 func UseDB(db *bun.DB) {
+	DB.mu.Lock()
 	DB.DB = db
 	DB.mu.Unlock()
 }
