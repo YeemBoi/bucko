@@ -90,7 +90,7 @@ func (cq *CtxQuery) GetFromField(field interface{}) (err error) {
 }
 
 func (cq *CtxQuery) GetFromPK(id uint64) (err error) {
-	return cq.M.GetSelectQuery(cq).WherePK().Scan(cq.R.Ctx)
+	return cq.M.GetSelectQuery(cq).Where("? = ?", cq.SafeCol(GetPKCol(cq.M)), id).Limit(1).Scan(cq.R.Ctx)
 }
 func (cq *CtxQuery) Insert() (err error) {
 	cq.M, err = cq.M.Insert(cq.R)
