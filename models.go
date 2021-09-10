@@ -52,12 +52,16 @@ var (
 
 func GetPK(m interface{}) uint64 {
 	table := DB.Table(reflect.TypeOf(m))
+	mValue := reflect.Indirect(reflect.ValueOf(m))
 
 	for _, pk := range table.PKs {
-		pkv := pk.Value(reflect.ValueOf(m))
-		if pkv.Kind() == reflect.Uint {
+		pkv := pk.Value(mValue)
+		switch pkv.Kind() {
+		case reflect.Uintptr:
+			return reflect.Indirect(pkv).Uint()
+		case reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
 			return pkv.Uint()
-		} else if pkv.Kind() == reflect.Int {
+		case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
 			return uint64(pkv.Int())
 		}
 	}
@@ -66,11 +70,18 @@ func GetPK(m interface{}) uint64 {
 
 func GetPKCol(m interface{}) bun.Ident {
 	table := DB.Table(reflect.TypeOf(m))
-
+	mValue := reflect.Indirect(reflect.ValueOf(m))
+	acceptableKinds := []reflect.Kind{
+		reflect.Uintptr, reflect.Uint, reflect.Int,
+		reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8,
+		reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
+	}
 	for _, pk := range table.PKs {
-		pkKind := pk.Value(reflect.ValueOf(m)).Kind()
-		if pkKind == reflect.Uint || pkKind == reflect.Int {
-			return bun.Ident(string(pk.Name))
+		pkKind := pk.Value(mValue).Kind()
+		for _, kind := range acceptableKinds {
+			if pkKind == kind {
+				return bun.Ident(string(pk.Name))
+			}
 		}
 	}
 	return "id"
