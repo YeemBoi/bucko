@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/schema"
 )
 
 type (
@@ -30,8 +31,23 @@ type (
 	// To disable a relation, return nil.
 	CustomRelI interface {
 		BaseFieldModel
-		GetCustomRel(rc *ReqCtx, name string) BaseFieldModel
+		GetCustomRel(rc *ReqCtx, rel *schema.Relation) *RelApplier
 	}
+
+	RelApplyFunc func(q *bun.SelectQuery) *bun.SelectQuery
+
+	// RelApplier can customize how to handle a relation.
+	RelApplier struct {
+		UseDefault  bool
+		Ignore      bool
+		ApplyFunc   RelApplyFunc
+		FollowModel BaseFieldModel
+	}
+)
+
+var (
+	DefaultRel = &RelApplier{UseDefault: true}
+	IgnoredRel = &RelApplier{Ignore: true}
 )
 
 func GetPK(m interface{}) uint64 {

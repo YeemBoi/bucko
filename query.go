@@ -125,31 +125,46 @@ func (cq *CtxQuery) selectRel(rel *schema.Relation, customs CustomRelI, oldNames
 	newPrefixes := append(oldPrefixes, rel.Field.Name)
 
 	var m BaseFieldModel
+	var applyFunc RelApplyFunc
 
+	var relApplier *RelApplier
 	if customs != nil {
-		m = customs.GetCustomRel(cq.R, rel.Field.GoName)
-	} else {
+		relApplier = customs.GetCustomRel(cq.R, rel)
+		if relApplier.Ignore {
+			return
+		} else if relApplier.ApplyFunc != nil {
+			applyFunc = relApplier.ApplyFunc
+		} else if relApplier.FollowModel != nil {
+			m = relApplier.FollowModel
+		}
+	}
+	if customs == nil || (relApplier.UseDefault && relApplier.FollowModel == nil) {
 		var ok bool
 		m, ok = rel.JoinTable.ZeroIface.(BaseFieldModel)
 		if !ok {
 			err := fmt.Errorf("joined table %v does not implement BaseFieldModel", rel.JoinTable.ModelName)
 			fmt.Println(err)
+			return
 		}
-	}
-	if m == nil {
+	} else {
 		return
 	}
 
-	newCustoms, _ := rel.JoinTable.ZeroIface.(CustomRelI)
-	cq.Q = cq.Q.Relation(strings.Join(newNames, "."),
-		func(q *bun.SelectQuery) *bun.SelectQuery {
+	if m != nil && applyFunc == nil {
+		applyFunc = func(q *bun.SelectQuery) *bun.SelectQuery {
 			return m.GetSelectQuery(&CtxQuery{
 				R:          cq.R,
 				Q:          q,
 				JoinPrefix: fmt.Sprintf("%s__", strings.Join(newPrefixes, "__")),
 				TableAlias: bun.Safe(fmt.Sprintf("`%s`", strings.Join(newPrefixes, "__"))),
 			})
-		})
+		}
+	} else if applyFunc == nil {
+		return
+	}
+
+	newCustoms, _ := rel.JoinTable.ZeroIface.(CustomRelI)
+	cq.Q = cq.Q.Relation(strings.Join(newNames, "."), applyFunc)
 	for _, rel := range rel.JoinTable.Relations {
 		cq.selectRel(rel, newCustoms, newNames, newPrefixes)
 	}
