@@ -29,7 +29,7 @@ func NewCtx(c echo.Context, ctx context.Context) *ReqCtx {
 		rc.Ctx = context.Background()
 	}
 
-	if err := rc.SetUser(); err != nil {
+	if err := rc.setUser(); err != nil {
 		rc.UserId.Valid = false
 		fmt.Println(err)
 	}
@@ -37,7 +37,7 @@ func NewCtx(c echo.Context, ctx context.Context) *ReqCtx {
 	return &rc
 }
 
-func (rc *ReqCtx) SetUser() (err error) {
+func (rc *ReqCtx) setUser() (err error) {
 	token, ok := rc.Get(jwtConfig.ContextKey).(*jwt.Token)
 	if !ok {
 		return errors.New("could not get token")
@@ -59,11 +59,11 @@ func (rc *ReqCtx) SetUser() (err error) {
 func (rc *ReqCtx) Query(m BaseFieldModel) *CtxQuery {
 	fmt.Println(m)
 	cq := CtxQuery{
-		R:          rc,
-		M:          m,
-		JoinPrefix: "",
-		TableAlias: DB.Table(reflect.TypeOf(m)).SQLAlias,
-		Q:          DB.NewSelect().Model(m),
+		R:           rc,
+		M:           m,
+		JoinPrefix:  "",
+		TableAlias:  DB.Table(reflect.TypeOf(m)).SQLAlias,
+		SelectQuery: DB.NewSelect().Model(m),
 	}
 	return &cq
 }

@@ -70,7 +70,7 @@ func (m *DefaultUser) GetField() interface{} {
 }
 
 func (*DefaultUser) GetSelectQuery(cq *CtxQuery) *bun.SelectQuery {
-	return cq.Q.Column("id", "username")
+	return cq.Column("id", "username")
 }
 
 func (b *DefaultUser) Insert(rc *ReqCtx) (m BaseFieldModel, err error) {
