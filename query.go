@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/schema"
 )
 
 type CtxQuery struct {
@@ -118,59 +116,5 @@ func (cq *CtxQuery) Select() {
 	customs, _ := cq.M.(CustomRelI)
 	for _, rel := range DB.Table(reflect.TypeOf(cq.M)).Relations {
 		cq.selectRel(rel, customs, make([]string, 0), make([]string, 0))
-	}
-}
-
-func (cq *CtxQuery) selectRel(rel *schema.Relation, customs CustomRelI, oldNames []string, oldPrefixes []string) {
-	if rel.Type != schema.HasOneRelation {
-		return
-	}
-
-	newNames := append(oldNames, rel.Field.GoName)
-	newPrefixes := append(oldPrefixes, rel.Field.Name)
-
-	var m BaseFieldModel
-	var applyFunc RelApplyFunc
-
-	var relApplier *RelApplier
-	if customs != nil {
-		relApplier = customs.GetCustomRel(cq.R, rel)
-		if relApplier.Ignore {
-			return
-		} else if relApplier.ApplyFunc != nil {
-			applyFunc = relApplier.ApplyFunc
-		} else if relApplier.FollowModel != nil {
-			m = relApplier.FollowModel
-		}
-	}
-	if customs == nil || (relApplier.UseDefault && relApplier.FollowModel == nil) {
-		var ok bool
-		m, ok = rel.JoinTable.ZeroIface.(BaseFieldModel)
-		if !ok {
-			err := fmt.Errorf("joined table %v does not implement BaseFieldModel", rel.JoinTable.ModelName)
-			fmt.Println(err)
-			return
-		}
-	} else {
-		return
-	}
-
-	if m != nil && applyFunc == nil {
-		applyFunc = func(q *bun.SelectQuery) *bun.SelectQuery {
-			return m.GetSelectQuery(&CtxQuery{
-				R:           cq.R,
-				SelectQuery: q,
-				JoinPrefix:  fmt.Sprintf("%s__", strings.Join(newPrefixes, "__")),
-				TableAlias:  bun.Safe(fmt.Sprintf("`%s`", strings.Join(newPrefixes, "__"))),
-			})
-		}
-	} else if applyFunc == nil {
-		return
-	}
-
-	newCustoms, _ := rel.JoinTable.ZeroIface.(CustomRelI)
-	cq.Q(cq.Relation(strings.Join(newNames, "."), applyFunc))
-	for _, rel := range rel.JoinTable.Relations {
-		cq.selectRel(rel, newCustoms, newNames, newPrefixes)
 	}
 }
